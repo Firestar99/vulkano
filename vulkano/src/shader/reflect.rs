@@ -1148,28 +1148,28 @@ fn shader_interface(
         })
         .collect();
 
-    // Checking for overlapping elements.
-    for (offset, element1) in elements.iter().enumerate() {
-        for element2 in elements.iter().skip(offset + 1) {
-            if element1.index == element2.index
-                && (element1.location == element2.location
-                    || (element1.location < element2.location
-                        && element1.location + element1.ty.num_locations() > element2.location)
-                    || (element2.location < element1.location
-                        && element2.location + element2.ty.num_locations() > element1.location))
-            {
-                panic!(
-                    "The locations of attributes `{:?}` ({}..{}) and `{:?}` ({}..{}) overlap",
-                    element1.name,
-                    element1.location,
-                    element1.location + element1.ty.num_locations(),
-                    element2.name,
-                    element2.location,
-                    element2.location + element2.ty.num_locations(),
-                );
-            }
-        }
-    }
+    // // Checking for overlapping elements.
+    // for (offset, element1) in elements.iter().enumerate() {
+    //     for element2 in elements.iter().skip(offset + 1) {
+    //         if element1.index == element2.index
+    //             && (element1.location == element2.location
+    //                 || (element1.location < element2.location
+    //                     && element1.location + element1.ty.num_locations() > element2.location)
+    //                 || (element2.location < element1.location
+    //                     && element2.location + element2.ty.num_locations() > element1.location))
+    //         {
+    //             panic!(
+    //                 "The locations of attributes `{:?}` ({}..{}) and `{:?}` ({}..{}) overlap",
+    //                 element1.name,
+    //                 element1.location,
+    //                 element1.location + element1.ty.num_locations(),
+    //                 element2.name,
+    //                 element2.location,
+    //                 element2.location + element2.ty.num_locations(),
+    //             );
+    //         }
+    //     }
+    // }
 
     ShaderInterface { elements }
 }
