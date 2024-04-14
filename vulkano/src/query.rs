@@ -13,6 +13,7 @@ use crate::{
     VulkanError, VulkanObject,
 };
 use std::{
+    ffi::c_void,
     mem::{size_of_val, MaybeUninit},
     num::NonZeroU64,
     ops::Range,
@@ -285,7 +286,7 @@ impl QueryPool {
                 range.start,
                 range.len() as u32,
                 size_of_val(destination),
-                destination.as_mut_ptr().cast(),
+                destination.as_mut_ptr() as *mut c_void,
                 stride,
                 ash::vk::QueryResultFlags::from(flags) | T::FLAG,
             )

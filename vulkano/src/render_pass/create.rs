@@ -78,8 +78,8 @@ impl RenderPass {
             let PerAttachment { stencil_layout_vk } = per_attachment_vk;
 
             if let Some(next) = stencil_layout_vk {
-                next.p_next = attachment_vk.p_next.cast_mut();
-                attachment_vk.p_next = <*const _>::cast(next);
+                next.p_next = attachment_vk.p_next as *mut _;
+                attachment_vk.p_next = next as *const _ as *const _;
             }
         }
 
@@ -350,8 +350,8 @@ impl RenderPass {
                 let PerAttachmentReferenceVk { stencil_layout_vk } = per_input_attachment_vk;
 
                 if let Some(stencil_layout_vk) = stencil_layout_vk {
-                    stencil_layout_vk.p_next = input_attachment_vk.p_next.cast_mut();
-                    input_attachment_vk.p_next = <*const _>::cast(stencil_layout_vk);
+                    stencil_layout_vk.p_next = input_attachment_vk.p_next as *mut _;
+                    input_attachment_vk.p_next = stencil_layout_vk as *const _ as *const _;
                 }
             }
 
@@ -360,8 +360,8 @@ impl RenderPass {
                     per_depth_stencil_attachment_vk;
 
                 if let Some(stencil_layout_vk) = stencil_layout_vk {
-                    stencil_layout_vk.p_next = depth_stencil_attachment_vk.p_next.cast_mut();
-                    depth_stencil_attachment_vk.p_next = <*const _>::cast(stencil_layout_vk);
+                    stencil_layout_vk.p_next = depth_stencil_attachment_vk.p_next as *mut _;
+                    depth_stencil_attachment_vk.p_next = stencil_layout_vk as *const _ as *const _;
                 }
             }
 
@@ -370,10 +370,9 @@ impl RenderPass {
                     per_depth_stencil_resolve_attachment_vk;
 
                 if let Some(stencil_layout_vk) = stencil_layout_vk {
-                    stencil_layout_vk.p_next =
-                        depth_stencil_resolve_attachment_vk.p_next.cast_mut();
+                    stencil_layout_vk.p_next = depth_stencil_resolve_attachment_vk.p_next as *mut _;
                     depth_stencil_resolve_attachment_vk.p_next =
-                        <*const _>::cast(stencil_layout_vk);
+                        stencil_layout_vk as *const _ as *const _;
                 }
             }
 
@@ -406,7 +405,7 @@ impl RenderPass {
                 };
 
                 depth_stencil_resolve_vk.p_next = subpass_vk.p_next;
-                subpass_vk.p_next = <*const _>::cast(depth_stencil_resolve_vk);
+                subpass_vk.p_next = depth_stencil_resolve_vk as *const _ as *const _;
             }
         }
 
@@ -466,7 +465,7 @@ impl RenderPass {
 
             if let Some(next) = memory_barrier_vk {
                 next.p_next = dependency_vk.p_next;
-                dependency_vk.p_next = <*const _>::cast(next);
+                dependency_vk.p_next = next as *const _ as *const _;
             }
         }
 
@@ -839,7 +838,7 @@ impl RenderPass {
                 );
 
                 next.p_next = create_info_vk.p_next;
-                create_info_vk.p_next = <*const _>::cast(next);
+                create_info_vk.p_next = next as *const _ as *const _;
             }
         }
 
@@ -872,7 +871,7 @@ impl RenderPass {
             });
 
             next.p_next = create_info_vk.p_next;
-            create_info_vk.p_next = <*const _>::cast(next);
+            create_info_vk.p_next = next as *const _ as *const _;
         }
 
         Ok({

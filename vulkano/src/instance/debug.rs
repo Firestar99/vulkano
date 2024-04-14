@@ -109,7 +109,7 @@ impl DebugUtilsMessenger {
             message_severity: message_severity.into(),
             message_type: message_type.into(),
             pfn_user_callback: Some(trampoline),
-            p_user_data: user_callback.as_ptr().cast_mut().cast(),
+            p_user_data: user_callback.as_ptr() as *const c_void as *mut _,
             ..Default::default()
         };
 
@@ -305,7 +305,7 @@ impl DebugUtilsMessengerCallback {
     }
 
     pub(crate) fn as_ptr(&self) -> *const CallbackData {
-        ptr::addr_of!(self.0)
+        &self.0 as _
     }
 }
 
@@ -367,7 +367,7 @@ pub(super) unsafe extern "system" fn trampoline(
             ),
         };
 
-        let user_callback: &CallbackData = &*user_data_vk.cast_const().cast();
+        let user_callback = &*(user_data_vk as *mut CallbackData as *const CallbackData);
 
         user_callback(
             message_severity_vk.into(),
