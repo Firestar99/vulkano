@@ -9,8 +9,8 @@ use vulkano::{
         allocator::StandardDescriptorSetAllocator, DescriptorSet, WriteDescriptorSet,
     },
     device::{
-        physical::PhysicalDeviceType, Device, DeviceCreateInfo, DeviceExtensions, QueueCreateInfo,
-        QueueFlags,
+        physical::PhysicalDeviceType, Device, DeviceCreateInfo, DeviceExtensions, DeviceFeatures,
+        QueueCreateInfo, QueueFlags,
     },
     format::Format,
     image::{
@@ -26,7 +26,7 @@ use vulkano::{
             input_assembly::{InputAssemblyState, PrimitiveTopology},
             multisample::MultisampleState,
             rasterization::RasterizationState,
-            vertex_input::{Vertex, VertexDefinition},
+            vertex_input::{Vertex, VertexInputState},
             viewport::{Viewport, ViewportState},
             GraphicsPipelineCreateInfo,
         },
@@ -106,6 +106,10 @@ fn main() -> Result<(), impl Error> {
         physical_device,
         DeviceCreateInfo {
             enabled_extensions: device_extensions,
+            enabled_features: DeviceFeatures {
+                runtime_descriptor_array: true,
+                ..DeviceFeatures::default()
+            },
             queue_create_infos: vec![QueueCreateInfo {
                 queue_family_index,
                 ..Default::default()
@@ -172,7 +176,7 @@ fn main() -> Result<(), impl Error> {
     let vertex_buffer = Buffer::from_iter(
         memory_allocator.clone(),
         BufferCreateInfo {
-            usage: BufferUsage::VERTEX_BUFFER,
+            usage: BufferUsage::STORAGE_BUFFER,
             ..Default::default()
         },
         AllocationCreateInfo {
@@ -290,14 +294,19 @@ fn main() -> Result<(), impl Error> {
             .unwrap()
             .entry_point("main")
             .unwrap();
-        let vertex_input_state = Vertex::per_vertex().definition(&vs).unwrap();
         let stages = [
             PipelineShaderStageCreateInfo::new(vs),
             PipelineShaderStageCreateInfo::new(fs),
         ];
+        let mut layout_ci = PipelineDescriptorSetLayoutCreateInfo::from_stages(&stages);
+        layout_ci.set_layouts[0]
+            .bindings
+            .get_mut(&2)
+            .unwrap()
+            .descriptor_count = 1;
         let layout = PipelineLayout::new(
             device.clone(),
-            PipelineDescriptorSetLayoutCreateInfo::from_stages(&stages)
+            layout_ci
                 .into_pipeline_layout_create_info(device.clone())
                 .unwrap(),
         )
@@ -309,7 +318,7 @@ fn main() -> Result<(), impl Error> {
             None,
             GraphicsPipelineCreateInfo {
                 stages: stages.into_iter().collect(),
-                vertex_input_state: Some(vertex_input_state),
+                vertex_input_state: Some(VertexInputState::default()),
                 input_assembly_state: Some(InputAssemblyState {
                     topology: PrimitiveTopology::TriangleStrip,
                     ..Default::default()
@@ -339,6 +348,7 @@ fn main() -> Result<(), impl Error> {
         [
             WriteDescriptorSet::sampler(0, sampler),
             WriteDescriptorSet::image_view(1, texture),
+            WriteDescriptorSet::buffer_array(2, 0, [vertex_buffer.clone()]),
         ],
         [],
     )
@@ -452,8 +462,6 @@ fn main() -> Result<(), impl Error> {
                         0,
                         set.clone(),
                     )
-                    .unwrap()
-                    .bind_vertex_buffers(0, vertex_buffer.clone())
                     .unwrap();
 
                 unsafe {
