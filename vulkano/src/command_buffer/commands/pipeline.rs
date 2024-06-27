@@ -1157,6 +1157,7 @@ impl RecordingCommandBuffer {
     /// # Safety
     ///
     /// - The general [shader safety requirements](crate::shader#safety) apply.
+    #[profiling::function]
     pub unsafe fn draw_mesh_tasks(
         &mut self,
         group_counts: [u32; 3],
@@ -1166,6 +1167,7 @@ impl RecordingCommandBuffer {
         unsafe { Ok(self.draw_mesh_tasks_unchecked(group_counts)) }
     }
 
+    #[profiling::function]
     fn validate_draw_mesh_tasks(&self, group_counts: [u32; 3]) -> Result<(), Box<ValidationError>> {
         self.inner.validate_draw_mesh_tasks(group_counts)?;
 
@@ -1305,6 +1307,7 @@ impl RecordingCommandBuffer {
         Ok(())
     }
 
+    #[profiling::function]
     #[cfg_attr(not(feature = "document_unchecked"), doc(hidden))]
     pub unsafe fn draw_mesh_tasks_unchecked(&mut self, group_counts: [u32; 3]) -> &mut Self {
         if let RenderPassStateType::BeginRendering(state) =

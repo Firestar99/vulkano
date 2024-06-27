@@ -101,3 +101,6 @@ inherits = "dev"
 debug = 0
 codegen-units = 1
 incremental = false
+
+[profile.release]
+incremental = true

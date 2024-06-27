@@ -134,12 +134,14 @@ impl RecordingCommandBuffer {
 
     /// Ends the recording, returning a command buffer which can be submitted.
     #[inline]
+    #[profiling::function]
     pub fn end(self) -> Result<Arc<CommandBuffer>, Validated<VulkanError>> {
         self.validate_end()?;
 
         unsafe { self.end_unchecked() }
     }
 
+    #[profiling::function]
     fn validate_end(&self) -> Result<(), Box<ValidationError>> {
         if self.level() == CommandBufferLevel::Primary && self.builder_state.render_pass.is_some() {
             return Err(Box::new(ValidationError {
@@ -163,6 +165,7 @@ impl RecordingCommandBuffer {
         Ok(())
     }
 
+    #[profiling::function]
     #[cfg_attr(not(feature = "document_unchecked"), doc(hidden))]
     pub unsafe fn end_unchecked(mut self) -> Result<Arc<CommandBuffer>, Validated<VulkanError>> {
         let mut auto_sync_state = AutoSyncState::new(
@@ -175,28 +178,54 @@ impl RecordingCommandBuffer {
         );
 
         // Add barriers between the commands.
-        for (command_info, _) in self.commands.iter() {
-            auto_sync_state.add_command(command_info).map_err(|err| {
-                Box::new(ValidationError {
-                    problem: format!(
-                        "unsolvable resource conflict between:\n\
+        {
+            profiling::scope!("Add barriers between the commands");
+            for (command_info, _) in self.commands.iter() {
+                auto_sync_state.add_command(command_info).map_err(|err| {
+                    Box::new(ValidationError {
+                        problem: format!(
+                            "unsolvable resource conflict between:\n\
                         command resource use: {:?}\n\
                         previous conflicting command resource use: {:?}",
-                        err.current_use_ref, err.previous_use_ref,
-                    )
-                    .into(),
-                    ..Default::default()
-                })
-            })?;
+                            err.current_use_ref, err.previous_use_ref,
+                        )
+                        .into(),
+                        ..Default::default()
+                    })
+                })?;
+            }
         }
 
         let (mut barriers, resources_usage, secondary_resources_usage) = auto_sync_state.build();
         let final_barrier_index = self.commands.len();
 
         // Record all the commands and barriers to the inner command buffer.
-        for (command_index, (_, record_func)) in self.commands.iter().enumerate() {
-            if let Some(barriers) = barriers.remove(&command_index) {
-                for dependency_info in barriers {
+        {
+            profiling::scope!("Record all the commands and barriers to the inner command buffer");
+            for (command_index, (_, record_func)) in self.commands.iter().enumerate() {
+                if let Some(barriers) = barriers.remove(&command_index) {
+                    for dependency_info in barriers {
+                        unsafe {
+                            #[cfg(debug_assertions)]
+                            self.inner
+                                .pipeline_barrier(&dependency_info)
+                                .expect("bug in Vulkano");
+
+                            #[cfg(not(debug_assertions))]
+                            self.inner.pipeline_barrier_unchecked(&dependency_info);
+                        }
+                    }
+                }
+
+                record_func(&mut self.inner);
+            }
+        }
+
+        // Record final barriers
+        {
+            profiling::scope!("Record final barriers");
+            if let Some(final_barriers) = barriers.remove(&final_barrier_index) {
+                for dependency_info in final_barriers {
                     unsafe {
                         #[cfg(debug_assertions)]
                         self.inner
@@ -206,23 +235,6 @@ impl RecordingCommandBuffer {
                         #[cfg(not(debug_assertions))]
                         self.inner.pipeline_barrier_unchecked(&dependency_info);
                     }
-                }
-            }
-
-            record_func(&mut self.inner);
-        }
-
-        // Record final barriers
-        if let Some(final_barriers) = barriers.remove(&final_barrier_index) {
-            for dependency_info in final_barriers {
-                unsafe {
-                    #[cfg(debug_assertions)]
-                    self.inner
-                        .pipeline_barrier(&dependency_info)
-                        .expect("bug in Vulkano");
-
-                    #[cfg(not(debug_assertions))]
-                    self.inner.pipeline_barrier_unchecked(&dependency_info);
                 }
             }
         }
@@ -355,6 +367,7 @@ impl AutoSyncState {
         }
     }
 
+    #[profiling::function]
     fn build(
         mut self,
     ) -> (
@@ -484,6 +497,7 @@ impl AutoSyncState {
         )
     }
 
+    #[profiling::function]
     fn add_command(
         &mut self,
         command_info: &CommandInfo,
@@ -508,6 +522,7 @@ impl AutoSyncState {
         Ok(())
     }
 
+    #[profiling::function]
     fn check_resource_conflicts(
         &self,
         command_info: &CommandInfo,
@@ -693,6 +708,7 @@ impl AutoSyncState {
     /// - `start_layout` and `end_layout` designate the image layout that the image is expected to
     ///   be in when the command starts, and the image layout that the image will be transitioned
     ///   to during the command. When it comes to buffers, you should pass `Undefined` for both.
+    #[profiling::function]
     fn add_resources(&mut self, command_info: &CommandInfo) {
         let &CommandInfo {
             name: command_name,
@@ -744,6 +760,7 @@ impl AutoSyncState {
         }
     }
 
+    #[profiling::function]
     fn add_buffer(
         &mut self,
         use_ref: ResourceUseRef,
@@ -867,6 +884,7 @@ impl AutoSyncState {
         }
     }
 
+    #[profiling::function]
     fn add_image(
         &mut self,
         use_ref: ResourceUseRef,

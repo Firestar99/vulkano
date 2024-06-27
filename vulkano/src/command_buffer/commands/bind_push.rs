@@ -23,6 +23,7 @@ use std::{cmp::min, ffi::c_void, mem::size_of, ptr, sync::Arc};
 /// These commands require a queue with a pipeline type that uses the given state.
 impl RecordingCommandBuffer {
     /// Binds descriptor sets for future dispatch or draw calls.
+    #[profiling::function]
     pub fn bind_descriptor_sets(
         &mut self,
         pipeline_bind_point: PipelineBindPoint,
@@ -147,6 +148,7 @@ impl RecordingCommandBuffer {
     }
 
     /// Binds a compute pipeline for future dispatch calls.
+    #[profiling::function]
     pub fn bind_pipeline_compute(
         &mut self,
         pipeline: Arc<ComputePipeline>,
@@ -183,6 +185,7 @@ impl RecordingCommandBuffer {
     }
 
     /// Binds a graphics pipeline for future draw calls.
+    #[profiling::function]
     pub fn bind_pipeline_graphics(
         &mut self,
         pipeline: Arc<GraphicsPipeline>,
@@ -274,6 +277,7 @@ impl RecordingCommandBuffer {
     }
 
     /// Sets push constants for future dispatch or draw calls.
+    #[profiling::function]
     pub fn push_constants<Pc>(
         &mut self,
         pipeline_layout: Arc<PipelineLayout>,
