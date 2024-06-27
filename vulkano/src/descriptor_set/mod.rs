@@ -720,7 +720,7 @@ impl DescriptorBindingResources {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct DescriptorSetWithOffsets {
     descriptor_set: Arc<DescriptorSet>,
     dynamic_offsets: SmallVec<[u32; 4]>,
